@@ -1,5 +1,4 @@
 import pickle
-
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -17,25 +16,32 @@ def pad_sequences(data, maxlen=None, dtype='float32', padding='post', value=0.0)
             padded_data[i, :len(seq)] = seq
     return padded_data
 
+# Load the dataset
 data_dict = pickle.load(open('./data.pickle', 'rb'))
 
 data = data_dict['data']
 labels = np.asarray(data_dict['labels'])
 
-# Pad the sequences
+# Encode labels numerically
+from sklearn.preprocessing import LabelEncoder
+label_encoder = LabelEncoder()
+labels_encoded = label_encoder.fit_transform(labels)
+
+# Pad sequences
 data_padded = pad_sequences(data)
 
-x_train, x_test, y_train, y_test = train_test_split(data_padded, labels, test_size=0.2, shuffle=True, stratify=labels)
+x_train, x_test, y_train, y_test = train_test_split(
+    data_padded, labels_encoded, test_size=0.2, shuffle=True, stratify=labels_encoded
+)
 
-# Proceed with the rest of the code
+# Train model
 model = RandomForestClassifier()
 model.fit(x_train, y_train)
 
 y_predict = model.predict(x_test)
-
 score = accuracy_score(y_predict, y_test)
-print('{}% of samples were classified correctly!'.format(score * 100))
+print(f"{score * 100:.2f}% of samples were classified correctly!")
 
-# Save the model
+# Save model and label mapping
 with open('model.p', 'wb') as f:
-    pickle.dump({'model': model}, f)
+    pickle.dump({'model': model, 'label_encoder': label_encoder}, f)
