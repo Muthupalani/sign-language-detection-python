@@ -3,12 +3,17 @@ import mediapipe as mp
 import pickle
 import numpy as np
 
-# Load trained model and label encoder
+
 model_dict = pickle.load(open('./model.p', 'rb'))
 model = model_dict['model']
-label_encoder = model_dict['label_encoder']
 
-# Initialize Mediapipe
+labels_dict = {
+    0: 'A',  # for class 0
+    1: 'B',  # for class 1
+    2: 'C',  # for class 2
+}
+
+
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -32,6 +37,7 @@ while True:
 
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
+
             mp_drawing.draw_landmarks(
                 frame,
                 hand_landmarks,
@@ -46,20 +52,25 @@ while True:
                 x_.append(x)
                 y_.append(y)
 
+
             for i in range(len(hand_landmarks.landmark)):
                 data_aux.append(hand_landmarks.landmark[i].x - min(x_))
                 data_aux.append(hand_landmarks.landmark[i].y - min(y_))
 
+
         if len(data_aux) == 42:
             prediction = model.predict([np.asarray(data_aux)])
-            predicted_label = label_encoder.inverse_transform(prediction)[0]
+            predicted_class = int(prediction[0])  
+            predicted_label = labels_dict.get(predicted_class, '?')  
+
 
             cv2.putText(frame, predicted_label, (10, 70), cv2.FONT_HERSHEY_SIMPLEX,
                         2, (0, 255, 0), 3, cv2.LINE_AA)
 
     cv2.imshow('Sign Language Detection', frame)
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):  # press 'q' to quit
+    # press 'q' to quit
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
